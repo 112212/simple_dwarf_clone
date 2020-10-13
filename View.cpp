@@ -2,6 +2,7 @@
 #include <ncurses.h>
 #include <fstream>
 #include <algorithm>
+#include "Utils.hpp"
 
 View::View(Model* _model) : model(_model) {
 	
@@ -15,9 +16,11 @@ void View::Init() {
 	m_window = newwin(LINES,COLS,0,0);
 	keypad(m_window, true);
 	m_window_size = glm::ivec2(COLS,LINES);
-	
+	curs_set(0); // hide cursor
+	noecho();
 	glm::ivec2 player_pos = model->GetPlayerPosition();
 	m_camera_position = player_pos;
+	m_game_window = m_window;
 }
 
 View::~View() {
@@ -55,36 +58,53 @@ void View::drawRect(glm::ivec2 center, glm::ivec2 size) {
 	mvwhline(m_window, top_left.y + size.y, top_left.x + 1, ACS_HLINE, size.x - 2);
 }
 
-void View::putString(glm::ivec2 center, std::string str) {
+void View::putString(glm::ivec2 center, std::string str, int cursor) {
 	mvwprintw(m_window, center.y, center.x - str.size()/2, str.c_str());
+	if(cursor >= 0) {
+		wattron( m_window, A_STANDOUT );
+		mvwaddch(m_window, center.y, center.x - str.size()/2 + cursor, str[cursor]);
+		wattroff( m_window, A_STANDOUT );
+	}
 }
 
 void View::renderMenu() {
-	std::vector<std::string> menu {
-		"New Game",
-		"Save Game",
-		"Load Game"
-	};
-	auto size_cmp = [](const std::string& a, const std::string &b) {return a.size() > b.size(); };
-	glm::ivec2 menu_size = glm::ivec2(std::max_element(menu.begin(), menu.end(), size_cmp)->size(), menu.size());
+	wclear(m_window);
+	
+	const Menu* menu = model->GetMenu();
+	if(!menu) return;
+	
+	// get max width of menu
+	glm::ivec2 menu_size;
+	menu_size.x = max_val(menu->items.begin(), menu->items.end(), [](const MenuItem &a) { return (int)a.name.size() + a.max_input; } );
+	menu_size.y = menu->items.size() + 2;
 	
 	glm::ivec2 center = m_window_size / 2;
-	// drawRect(center, {menu_size.x + 2, 1});
-	int selected = 0;
+	if(m_menu_window) {
+		delwin(m_menu_window);
+	}
+	int selected = model->GetSelection();
 	int i = 0;
 	
-	putString({center.x, 2}, "MAIN MENU");
+	drawRect(center, menu_size + glm::ivec2(10, 5));
+	putString({center.x, 2}, menu->title);
 	
-	for(auto& m : menu) {
-		glm::ivec2 pos( center.x - m.size()/2, center.y - menu_size.y + i );
-		mvwprintw(m_window, pos.y, pos.x, "%s", m.c_str());
+	for(auto& m : menu->items) {
+		int elem_size = m.name.size();
+		glm::ivec2 pos( center.x, center.y - menu->items.size() + i );
+		if(m.type == MenuItem::Type::inputfield) { // input box
+			std::string input(m.max_input, '_');
+			std::copy(m.input.begin(), m.input.end(), input.begin());
+			elem_size += m.max_input;
+			putString(pos, m.name + input, i == selected ? m.name.size() + m.input_cursor : -1);
+		} else {
+			putString(pos, m.name);
+		}
 		if(i == selected) {
-			mvwaddch(m_window, pos.y, pos.x-2, '*');
-			mvwaddch(m_window, pos.y, pos.x + menu_size.x + 2, '*');
+			mvwaddch(m_window, pos.y, pos.x-2 - elem_size/2, '*');
+			mvwaddch(m_window, pos.y, pos.x + elem_size/2 + 2, '*');
 		}
 		i++;
 	}
-	
 }
 
 void View::renderGame() {
@@ -193,6 +213,7 @@ void View::Render() {
 			break;
 			
 		case ViewType::items:
+			// renderGame();
 			renderItemsMenu();
 			break;
 			

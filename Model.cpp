@@ -2,6 +2,7 @@
 #include "Model.hpp"
 #include "libs/json.hpp"
 #include <fstream>
+#include <algorithm>
 
 Model::Model() {
 	m_view = ViewType::menu;
@@ -105,8 +106,48 @@ void Model::LoadItems(std::string jsonFilename) {
 }
 
 
+// Menu
+
+void Model::SetMenu(Menu* menu) {
+	current_menu = menu;
+	menu_stack = std::stack<Menu*>();
+	current_menu->Clear();
+}
+
+Menu* Model::GetMenu() {
+	return current_menu;
+}
+
+void Menu::Clear() {
+	for(auto &i : items) {
+		i.input_cursor = 0;
+		i.input.clear();
+	}
+}
+
+void Model::PushMenu(Menu* menu) {
+	menu_stack.push(current_menu);
+	current_menu = menu;
+	current_menu->Clear();
+}
+
+void Model::PopMenu() {
+	if(menu_stack.empty()) return;
+	current_menu = menu_stack.top();
+	menu_stack.pop();
+}
+
+void Model::IncrementSelection(int dir) {
+	m_selection = glm::clamp(m_selection + dir, 0, (int)current_menu->items.size()-1);
+}
+
+int Model::GetSelection() {
+	return m_selection;
+}
+
 void Model::SetView(ViewType view) {
 	m_view = view;
+	m_selection = 0;
 }
 
 ViewType  Model::GetView() {

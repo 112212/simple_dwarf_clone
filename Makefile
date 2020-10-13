@@ -6,7 +6,7 @@ cpp := 	\
 		
 build := build
 
-flags := -g -O0
+flags := -g -O0 -std=c++14
 link := -lcurses
 
 obj := $(addprefix $(build)/, $(patsubst %.cpp,%.o,$(cpp)))

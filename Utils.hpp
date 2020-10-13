@@ -1,3 +1,4 @@
+#pragma once
 #include <glm/glm.hpp>
 
 // map vector compare operator
@@ -29,3 +30,18 @@ VEC_OPERATOR(>)
 VEC_OPERATOR(>=)
 VEC_OPERATOR(==)
 VEC_OPERATOR(!=)
+
+
+static bool str_size_cmp(const std::string& a, const std::string &b) {
+	return a.size() > b.size(); 
+};
+
+template<typename It, typename Cmp>
+auto max_val(It begin, It end, Cmp cmp) {
+	if(begin == end) return 0;
+	decltype(cmp(*begin)) vmax = cmp(*begin);
+	for(It it = begin+1; it != end; ++it) {
+		vmax = std::max(cmp(*it), vmax);
+	}
+	return vmax;
+}

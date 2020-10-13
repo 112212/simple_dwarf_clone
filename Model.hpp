@@ -4,6 +4,7 @@
 #include <map>
 #include <array>
 #include <memory>
+#include <stack>
 
 #include "Utils.hpp"
 #include <glm/glm.hpp>
@@ -59,6 +60,28 @@ enum class ViewType {
 	items
 };
 
+struct MenuItem {
+	enum Type {
+		button,
+		inputfield
+	};
+	Type type;
+	std::string name;
+	
+	std::function<void()> onclick;
+	
+	int input_cursor;
+	std::string input;
+	int max_input;
+};
+
+struct Menu {
+	std::string title;
+	std::vector<MenuItem> items;
+	void Clear();
+	std::function<void()> onclick;
+};
+
 class Model {
 public:
 	Model();
@@ -81,20 +104,33 @@ public:
 	
 	Tile& GetObjectAt(glm::ivec2 pos);
 	
-	std::shared_ptr<Actor> GetPlayer();
-	glm::ivec2 GetPlayerPosition();
+	std::shared_ptr<Actor> 	GetPlayer();
+	glm::ivec2 				GetPlayerPosition();
 	
-	void MovePos(glm::ivec2 oldPos, glm::ivec2 newPos);
+	void 		MovePos(glm::ivec2 oldPos, glm::ivec2 newPos);
 	
-	void SaveGame(std::string jsonFilename);
-	void LoadGame(std::string jsonFilename);
+	void 		SaveGame(std::string jsonFilename);
+	void 		LoadGame(std::string jsonFilename);
 	
-	void LoadItems(std::string jsonFilename);
+	void 		LoadItems(std::string jsonFilename);
 	
 	void 		SetView(ViewType view);
 	ViewType  	GetView();
+	
+	void		SetMenu(Menu* menu);
+	void		PushMenu(Menu* menu);
+	void		PopMenu();
+	Menu*		GetMenu();
+	int 		GetSelection();
+	void		IncrementSelection(int dir);
+
 private:
 	std::shared_ptr<Actor> player;
 	std::map<glm::ivec2, Chunk, vec2_cmp<glm::ivec2>> chunks;
+	
+	// non saveable state
+	Menu* current_menu;
+	std::stack<Menu*> menu_stack;
 	ViewType m_view;
+	int m_selection;
 };
