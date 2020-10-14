@@ -1,16 +1,15 @@
 #pragma once
 #include "Model.hpp"
 #include "View.hpp"
-
+#include "Signals.hpp"
 
 class Controller {
 public:
-	Controller(Model* model, View* view);
+	Controller(Model* _model, Signals* _signals);
 	void Move(glm::ivec2 relpos);
 	void InitMenus();
 	void ProcessInput(int c);
-	boost::signals2::signal<void()> sig_newFrame;
-	boost::signals2::signal<void()> sig_quit;
 private:
 	Model* model;
+	Signals* signals;
 };

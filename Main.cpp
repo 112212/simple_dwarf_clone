@@ -4,12 +4,13 @@
 
 int main() {
 	Model model;
-	View view(&model);
+	Signals signals;
+	View view(&model, &signals);
 	model.GenerateMap();
 	view.Init();
 	
-	Controller controller(&model, &view);
-	
+	model.LoadConfig("config/config.json");
+	Controller controller(&model, &signals);
 	while(1) {
 		view.GetInput();
 	}

@@ -8,19 +8,22 @@
 
 #include "Utils.hpp"
 #include <glm/glm.hpp>
-#include <boost/signals2.hpp>
+
 #include <functional>
 
 struct Object {
+	virtual ~Object() {}
 	enum Type {
 		empty,
 		friendly,
 		enemy,
 		obstacle,
 		tree,
-		mountain
+		mountain,
+		num_types
 	};
 	Type type;
+	int elevation;
 };
 
 struct Item {
@@ -86,33 +89,28 @@ class Model {
 public:
 	Model();
 	struct Chunk {
-		std::array<Tile, 64> tiles;
-		
+		static constexpr int xsize = 8;
+		static constexpr int ysize = 8;
+		std::array<Tile, xsize*ysize> tiles;
+
 		Tile& ObjectAt(const glm::ivec2& pos) {
-			return ObjectAt(pos.x, pos.y);
-		}
-		
-		Tile& ObjectAt(int x, int y) {
-			return tiles[y*8 + x];
+			return tiles[pos.y*xsize + pos.x];
 		}
 	};
 	
-	void GenerateMap();
-	
-	
 	Chunk& GetChunk(glm::ivec2 pos);
-	
 	Tile& GetObjectAt(glm::ivec2 pos);
 	
 	std::shared_ptr<Actor> 	GetPlayer();
 	glm::ivec2 				GetPlayerPosition();
 	
+	void GenerateMap();
+	
 	void 		MovePos(glm::ivec2 oldPos, glm::ivec2 newPos);
 	
 	void 		SaveGame(std::string jsonFilename);
 	void 		LoadGame(std::string jsonFilename);
-	
-	void 		LoadItems(std::string jsonFilename);
+	void		LoadConfig(std::string jsonFilename);
 	
 	void 		SetView(ViewType view);
 	ViewType  	GetView();
@@ -123,14 +121,15 @@ public:
 	Menu*		GetMenu();
 	int 		GetSelection();
 	void		IncrementSelection(int dir);
+	const std::array<char, Object::Type::num_types>& GetCharPalette();
 
 private:
 	std::shared_ptr<Actor> player;
 	std::map<glm::ivec2, Chunk, vec2_cmp<glm::ivec2>> chunks;
-	
+	std::array<char, Object::Type::num_types> charPalette;
 	// non saveable state
-	Menu* current_menu;
-	std::stack<Menu*> menu_stack;
-	ViewType m_view;
-	int m_selection;
+	Menu* 				current_menu;
+	std::stack<Menu*> 	menu_stack;
+	ViewType 			m_view;
+	int 				m_selection;
 };

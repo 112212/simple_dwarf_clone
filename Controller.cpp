@@ -52,27 +52,23 @@ void Controller::InitMenus() {
 		{
 			{MenuItem::Type::button, "New Game", enter_menu(&new_game)},
 			{MenuItem::Type::button, "Load Game", enter_menu(&load_game)},
-			{MenuItem::Type::button, "Quit Game", [=](){sig_quit();}},
+			{MenuItem::Type::button, "Quit Game", [=](){signals->sig_quit();}},
 		}
 	};
 
 	
 }
 
-Controller::Controller(Model* _model, View* view) : model(_model) {
+Controller::Controller(Model* _model, Signals* _signals) : model(_model), signals(_signals) {
 	// must receieve keyboard input from view (as controller doesn't have reference to curses window, on purpose)
-	view->sig_input.connect(std::bind(&Controller::ProcessInput, this, std::placeholders::_1));
-	
-	sig_newFrame.connect(std::bind(&View::Render, view));
-	
-	sig_quit.connect(std::bind(&View::Quit, view));
-	
+	signals->sig_input.connect(std::bind(&Controller::ProcessInput, this, std::placeholders::_1));
+
 	InitMenus();
 	model->SetMenu(main_menu);
-	model->SetView(ViewType::menu);
+	model->SetView(ViewType::items);
 	
 	// render initial frame
-	sig_newFrame();
+	signals->sig_newFrame();
 }
 
 void Controller::Move(glm::ivec2 relpos) {
@@ -91,7 +87,7 @@ void Controller::Move(glm::ivec2 relpos) {
 		model->GetPlayer()->position = new_pos;
 	}
 	
-	sig_newFrame();
+	signals->sig_newFrame();
 }
 
 
@@ -147,7 +143,7 @@ void Controller::ProcessInput(int c) {
 			}
 		}
 			
-		sig_newFrame();
+		signals->sig_newFrame();
 	}
 	
 	// process arrow keys
@@ -156,7 +152,7 @@ void Controller::ProcessInput(int c) {
 		if(model->GetView() == ViewType::menu) {
 			if(!std::isalpha(c)) {
 				model->IncrementSelection(it->second.y);
-				sig_newFrame();
+				signals->sig_newFrame();
 			}
 		} else {
 			Move(it->second);

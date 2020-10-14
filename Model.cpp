@@ -22,11 +22,28 @@ void Model::GenerateMap() {
 	
 	// put player on map
 	player = std::make_shared<Actor>();
-	glm::ivec2 playerPos = {75*8,75*8};
+	glm::ivec2 playerPos = {75*Chunk::xsize,75*Chunk::ysize};
 	auto &plpos = GetObjectAt(playerPos);
 	plpos.type = Object::Type::friendly;
 	plpos.obj = player;
+	player->hp = 100;
+	player->armor = 10;
 	player->position = playerPos;
+	
+	for(int i=0; i < 50; i++) {
+		for(int j=0; j < 10; j++) {
+			// put some trees
+			auto &trpos = GetObjectAt(playerPos + glm::ivec2(2*i,4+2*j));
+			trpos.type = Object::Type::tree;
+		}
+	}
+	{
+		// put enemy
+		auto &enpos = GetObjectAt(playerPos + glm::ivec2(-2, -3));
+		enpos.type = Object::Type::enemy;
+		enpos.obj = std::make_shared<Actor>();
+		std::dynamic_pointer_cast<Actor>(enpos.obj)->hp = 50;
+	}
 }
 
 void Model::MovePos(glm::ivec2 oldPos, glm::ivec2 newPos) {
@@ -101,8 +118,29 @@ void Model::LoadGame(std::string jsonFilename) {
 	
 }
 
-void Model::LoadItems(std::string jsonFilename) {
+void Model::LoadConfig(std::string jsonFilename) {
+	using namespace nlohmann;
+	std::fstream f(jsonFilename);
+	json j;
+	f >> j;
+		
+	// load palette definitions
+	std::string palette = j["palette"];
+	std::copy_n(palette.begin(), Object::Type::num_types, charPalette.begin());
 	
+	// load item definitions
+	{
+		for(auto &i : j["items"]) {
+			
+		}
+		
+		// json jpos = j["player"]["position"];
+		// player->position = glm::ivec2(jpos[0], jpos[1]);
+	}
+}
+
+const std::array<char, Object::Type::num_types>& Model::GetCharPalette() {
+	return charPalette;
 }
 
 

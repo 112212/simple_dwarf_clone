@@ -21,20 +21,17 @@ template<typename T> \
 static T operator op (const T& v1, const T& v2) { \
 	return T(v1.x op v2.x, v1.y op v2.y); \
 } \
-template<typename T, typename B> \
-static T operator op (const T& v1, const B& s) { \
+template<typename T, typename S> \
+static T operator op (const T& v1, const S& s) { \
 	return T(v1.x op s, v1.y op s); \
 }
 
+VEC_OPERATOR(<)
+VEC_OPERATOR(<=)
 VEC_OPERATOR(>)
 VEC_OPERATOR(>=)
 VEC_OPERATOR(==)
 VEC_OPERATOR(!=)
-
-
-static bool str_size_cmp(const std::string& a, const std::string &b) {
-	return a.size() > b.size(); 
-};
 
 template<typename It, typename Cmp>
 auto max_val(It begin, It end, Cmp cmp) {
