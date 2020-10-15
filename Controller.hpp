@@ -8,7 +8,9 @@ public:
 	Controller(Model* _model, Signals* _signals);
 	void Move(glm::ivec2 frompos, glm::ivec2 relpos);
 	void ToggleItemsDialog();
-	void InitMenus();
+	void ToggleSaveGameDialog();
+	void UpdateLoadGameMenu();
+	void InitMainMenu();
 	void ProcessInput(int c);
 private:
 	Model* model;

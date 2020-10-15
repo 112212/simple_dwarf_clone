@@ -3,6 +3,7 @@
 #include "libs/json.hpp"
 #include <fstream>
 #include <algorithm>
+#include <random>
 
 Model::Model() {
 	m_view = ViewType::menu;
@@ -22,6 +23,23 @@ void Model::GenerateMap() {
 		chunks[glm::ivec2(x,y)] = Chunk();
 	}
 	
+	glm::ivec2 playerPos = {75*Chunk::xsize,75*Chunk::ysize};
+	
+	// put some trees
+	for(int i=0; i < 50; i++) {
+		for(int j=0; j < 10; j++) {
+			auto &trpos = GetObjectAt(playerPos + glm::ivec2(2*i,4+2*j));
+			trpos.type = Object::Type::tree;
+		}
+	}
+	
+}
+
+void Model::NewGame() {
+	static std::default_random_engine re;
+	std::uniform_int_distribution<int> unif(0,items.size());
+	
+	
 	// put player on map
 	player = std::make_shared<Actor>();
 	glm::ivec2 playerPos = {75*Chunk::xsize,75*Chunk::ysize};
@@ -34,23 +52,13 @@ void Model::GenerateMap() {
 	player->damage = 40;
 	
 	player->items = {
-		{'H',1,0,0,30},
-		{'a',1,0,20,30},
-		{'a',1,0,20,30},
-		{'A',0,0,30,0},
+		{0},{1},{2},{3}
 	};
 	
-	for(int i=0; i < 50; i++) {
-		for(int j=0; j < 10; j++) {
-			// put some trees
-			auto &trpos = GetObjectAt(playerPos + glm::ivec2(2*i,4+2*j));
-			trpos.type = Object::Type::tree;
-		}
-	}
 	for(int i = 0; i < 10; i++)
 	{
 		// put enemy
-		auto pos = playerPos + glm::ivec2(-2 + i*3, -3);
+		auto pos = player->position + glm::ivec2(-2 + i*3, -3);
 		auto &enpos = GetObjectAt(pos);
 		enpos.type = Object::Type::enemy;
 		auto en = std::make_shared<Actor>();
@@ -59,19 +67,12 @@ void Model::GenerateMap() {
 		enpos.obj = en;
 		en->hp = 50;
 		en->damage = 10;
+			
 		en->items = {
-			{'H',1,0,0,30},
+			{unif(re),false}
 		};
 	}	
 	SetAttackedPos({-1,-1});
-}
-
-void Model::MovePos(glm::ivec2 oldPos, glm::ivec2 newPos) {
-	auto &place = GetObjectAt(oldPos);
-	auto &placeToGo = GetObjectAt(newPos);
-	place.obj.swap(placeToGo.obj);
-	place.obj.reset();
-	static_cast<Actor*>(placeToGo.obj.get())->position = newPos;
 }
 
 glm::ivec2 Model::GetAttackedPos() {
@@ -96,54 +97,74 @@ Tile& Model::GetObjectAt(glm::ivec2 pos) {
 }
 
 
+const ItemDef&	Model::GetItemDef(int idx) {
+	return items[idx];
+}
+
 static nlohmann::json ActorToJson(Actor* actor) {
 	using namespace nlohmann;
 	json jactor;
-	jactor["position"] = json::array({actor->position.x, actor->position.y });
+	jactor["position"] = json::array({actor->position.x, actor->position.y});
 	jactor["hp"] = actor->hp;
 	jactor["armor"] = actor->armor;
-	jactor["damage"] = actor->armor;
+	jactor["damage"] = actor->damage;
 	
 	jactor["items"] = json::array();
 	
-	for(auto& itm : actor->items) {
-		json jitem;
-		jitem["charRepr"] = itm.charRepr;
-		// jitem["
+	for(auto& i : actor->items) {
+		json jitem = json::array({i.idx, i.equipped});
 		jactor["items"].push_back(jitem);
 	}
 	return jactor;
+}
+
+static std::shared_ptr<Actor> JsonToActor(nlohmann::json j) {
+	using namespace nlohmann;
+	json jactor;
+	std::shared_ptr<Actor> actor = std::shared_ptr<Actor>(new Actor());
+	actor->position = {j["position"][0],j["position"][1]};
+	actor->hp = j["hp"];
+	actor->armor = j["armor"];
+	actor->damage = j["damage"];
+	
+	for(auto& i : j["items"]) {
+		actor->items.push_back(Item{i[0], i[1]});
+	}
+	return actor;
 }
 
 void Model::SaveGame(std::string jsonFilename) {
 	using namespace nlohmann;
 	json j;
 	
-	json jplayer;
-	jplayer["position"] = json::array({player->position.x, player->position.y });
-	jplayer["hp"] = player->hp;
-	jplayer["armor"] = player->armor;
-	jplayer["damage"] = player->armor;
-	
-	
 	j["player"] = ActorToJson(player.get());
-	
-	
-	
-	std::fstream f(jsonFilename);
+	json jenemies = json::array();
+	for(auto &e : enemies) {
+		jenemies.push_back(ActorToJson(e.get()));
+	}
+	j["enemies"] = jenemies;
+	std::ofstream f(jsonFilename);
+	f.width(4);
 	f << j;
 }
 
 void Model::LoadGame(std::string jsonFilename) {
 	using namespace nlohmann;
-	std::fstream f(jsonFilename);
+	std::ifstream f(jsonFilename);
 	json j;
 	f >> j;
+	for(auto &e : j["enemies"]) {
+		auto en = JsonToActor(e);
+		auto &plpos = GetObjectAt(en->position);
+		plpos.type = Object::Type::enemy;
+		plpos.obj = en;
+		enemies.emplace(std::move(en));
+	}
 	
-	json jpos = j["player"]["position"];
-	player->position = glm::ivec2(jpos[0], jpos[1]);
-	
-	
+	player = JsonToActor(j["player"]);
+	auto &plpos = GetObjectAt(player->position);
+	plpos.type = Object::Type::friendly;
+	plpos.obj = player;
 }
 
 void Model::LoadConfig(std::string jsonFilename) {
@@ -156,14 +177,22 @@ void Model::LoadConfig(std::string jsonFilename) {
 	std::string palette = j["palette"];
 	std::copy_n(palette.begin(), Object::Type::num_types, charPalette.begin());
 	
+	auto get = [](auto& j, std::string name, const auto &def) {
+		auto it = j.find(name);
+		return it != j.end() ? (decltype(def))*it : def;
+	};
+	
 	// load item definitions
 	{
 		for(auto &i : j["items"]) {
-			
+			items.push_back(ItemDef{
+				get(i, "char", std::string(" "))[0],
+				get(i, "consumable", false),
+				get(i, "damage", 0),
+				get(i, "armor", 0),
+				get(i, "hp", 0),
+			});
 		}
-		
-		// json jpos = j["player"]["position"];
-		// player->position = glm::ivec2(jpos[0], jpos[1]);
 	}
 }
 
@@ -175,6 +204,8 @@ const std::array<char, Object::Type::num_types>& Model::GetCharPalette() {
 std::set<std::shared_ptr<Actor>>& Model::GetEnemies() {
 	return enemies;
 }
+
+// ============= Menu ==============
 
 // Menu
 
@@ -190,6 +221,21 @@ Menu* Model::GetMenu() {
 	return current_menu;
 }
 
+void Model::PushMenu(Menu* menu) {
+	menu_stack.push(current_menu);
+	current_menu = menu;
+	current_menu->Clear();
+	m_selection = 0;
+}
+
+bool Model::PopMenu() {
+	if(menu_stack.empty()) return false;
+	current_menu = menu_stack.top();
+	menu_stack.pop();
+	m_selection = 0;
+	return true;
+}
+
 void Menu::Clear() {
 	for(auto &i : items) {
 		i.input_cursor = 0;
@@ -197,17 +243,32 @@ void Menu::Clear() {
 	}
 }
 
-void Model::PushMenu(Menu* menu) {
-	menu_stack.push(current_menu);
-	current_menu = menu;
-	current_menu->Clear();
+// View
+
+ViewType  Model::GetView() {
+	return m_view;
 }
 
-void Model::PopMenu() {
-	if(menu_stack.empty()) return;
-	current_menu = menu_stack.top();
-	menu_stack.pop();
+void Model::SetView(ViewType view) {
+	m_view = view;
+	m_selection = 0;
+	view_stack = std::stack<ViewType>();
 }
+
+void Model::PushView(ViewType type) {
+	view_stack.push(m_view);
+	m_selection = 0;
+	m_view = type;
+}
+
+bool Model::PopView() {
+	if(view_stack.empty()) return false;
+	m_view = view_stack.top();
+	view_stack.pop();
+	return true;
+}
+
+// Selection
 
 void Model::IncrementSelection(int dir) {
 	m_selection = glm::clamp(m_selection + dir, 0, (int)current_menu->items.size()-1);
@@ -217,11 +278,5 @@ int Model::GetSelection() {
 	return m_selection;
 }
 
-void Model::SetView(ViewType view) {
-	m_view = view;
-	m_selection = 0;
-}
 
-ViewType  Model::GetView() {
-	return m_view;
-}
+

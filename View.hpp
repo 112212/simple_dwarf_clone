@@ -14,6 +14,7 @@ public:
 	void Init();
 	void GetInput();
 	void Render();
+	void NewGame();
 	void Quit();
 	boost::signals2::signal<void(int)> sig_input;
 	

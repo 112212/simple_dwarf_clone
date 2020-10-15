@@ -28,12 +28,16 @@ struct Object {
 	
 };
 
-struct Item {
+struct ItemDef {
 	int charRepr;
 	bool consumable;
 	int damage;
 	int armor;
 	int hp;
+};
+
+struct Item {
+	int idx;
 	bool equipped;
 };
 
@@ -84,6 +88,7 @@ struct Menu {
 	std::vector<MenuItem> items;
 	void Clear();
 	std::function<void()> onclick;
+	std::function<void()> onback; // if no menu in stack, we can to try use this callback
 };
 
 class Model {
@@ -99,45 +104,54 @@ public:
 		}
 	};
 	
-	Chunk& GetChunk(glm::ivec2 pos);
-	Tile& GetObjectAt(glm::ivec2 pos);
+	// map
+	Chunk& 	GetChunk(glm::ivec2 pos);
+	Tile& 	GetObjectAt(glm::ivec2 pos);
 	
 	std::shared_ptr<Actor> 	GetPlayer();
 	glm::ivec2 				GetPlayerPosition();
 	
-	void 		GenerateMap();
+	// game making
+	void 	GenerateMap();
+	void	NewGame();
+	void 	SaveGame(std::string jsonFilename);
+	void 	LoadGame(std::string jsonFilename);
+	void	LoadConfig(std::string jsonFilename);
 	
-	void 		MovePos(glm::ivec2 oldPos, glm::ivec2 newPos);
-	
-	void 		SaveGame(std::string jsonFilename);
-	void 		LoadGame(std::string jsonFilename);
-	void		LoadConfig(std::string jsonFilename);
-	
+	// which interface should render
 	void 		SetView(ViewType view);
-	ViewType  	GetView();
+	ViewType	GetView();
+	void		PushView(ViewType view);
+	bool		PopView();
 	
+	// menu
 	void		SetMenu(Menu* menu, bool clear=true);
 	void		PushMenu(Menu* menu);
-	void		PopMenu();
+	bool		PopMenu();
 	Menu*		GetMenu();
 	int 		GetSelection();
 	void		IncrementSelection(int dir);
+	
+	// for combat system
 	void		SetAttackedPos(glm::ivec2 pos);
 	glm::ivec2  GetAttackedPos();
 	
 	std::set<std::shared_ptr<Actor>>& 					GetEnemies();
 	const std::array<char, Object::Type::num_types>& 	GetCharPalette();
+	const ItemDef&	GetItemDef(int idx);
 
 private:
 	std::shared_ptr<Actor> player;
 	std::set<std::shared_ptr<Actor>> enemies;
+	std::vector<ItemDef> items;
 	std::map<glm::ivec2, Chunk, vec2_cmp<glm::ivec2>> chunks;
 	std::array<char, Object::Type::num_types> charPalette;
 	
 	// non saveable state
-	Menu* 				current_menu;
-	std::stack<Menu*> 	menu_stack;
-	ViewType 			m_view;
-	int 				m_selection;
-	glm::ivec2			m_attacked_pos;
+	Menu* 					current_menu;
+	std::stack<ViewType> 	view_stack;
+	std::stack<Menu*> 		menu_stack;
+	ViewType 				m_view;
+	int 					m_selection;
+	glm::ivec2				m_attacked_pos;
 };

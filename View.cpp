@@ -5,8 +5,10 @@
 #include "Utils.hpp"
 
 View::View(Model* _model, Signals* _signals) : model(_model), signals(_signals) {
-	signals->sig_newFrame.connect(std::bind(&View::Render, this));
+	signals->sig_new_frame.connect(std::bind(&View::Render, this));
 	signals->sig_quit.connect(std::bind(&View::Quit, this));
+	signals->sig_new_game.connect(std::bind(&View::NewGame, this));
+	Init();
 }
 
 #define REDCOLOR 1
@@ -20,20 +22,24 @@ void View::Init() {
 	m_window_size = glm::ivec2(COLS,LINES);
 	curs_set(0); // hide cursor
 	noecho();
-	glm::ivec2 player_pos = model->GetPlayerPosition();
-	m_camera_position = player_pos;
 	m_game_window = m_window;
 	
 	start_color();
 	init_pair(REDCOLOR, COLOR_RED, COLOR_BLACK);
 }
 
+std::ofstream fc("out2.log");
 View::~View() {
 	// deinit curses
+	fc.close();
 	endwin();
 }
 
-std::ofstream fc("out2.log");
+void View::NewGame() {
+	m_camera_position = model->GetPlayerPosition();
+}
+
+
 void View::GetInput() {
 	int c = wgetch(m_window);
 	fc << "ch " << c << "\n";
@@ -41,6 +47,7 @@ void View::GetInput() {
 }
 
 void View::Quit() {
+	
 	endwin();
 	exit(0);
 }
@@ -105,7 +112,7 @@ void View::renderMenu() {
 	int i = 0;
 	for(auto& m : menu->items) {
 		int elem_size = m.name.size();
-		glm::ivec2 pos( center.x, center.y - menu->items.size() + i );
+		glm::ivec2 pos( center.x, center.y - menu_size.y/2 + 2 + i );
 		if(m.type == MenuItem::Type::inputfield) { // input box
 			std::string input(m.max_input, '_');
 			std::copy(m.input.begin(), m.input.end(), input.begin());
