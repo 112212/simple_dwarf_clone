@@ -14,11 +14,13 @@ Model::Chunk& Model::GetChunk(glm::ivec2 pos) {
 
 
 void Model::GenerateMap() {
+	enemies.clear();
 	
 	// generate empty map
 	for(int x=50; x < 100; x++)
-	for(int y=50; y < 100; y++)
+	for(int y=50; y < 100; y++) {
 		chunks[glm::ivec2(x,y)] = Chunk();
+	}
 	
 	// put player on map
 	player = std::make_shared<Actor>();
@@ -29,6 +31,14 @@ void Model::GenerateMap() {
 	player->hp = 100;
 	player->armor = 10;
 	player->position = playerPos;
+	player->damage = 40;
+	
+	player->items = {
+		{'H',1,0,0,30},
+		{'a',1,0,20,30},
+		{'a',1,0,20,30},
+		{'A',0,0,30,0},
+	};
 	
 	for(int i=0; i < 50; i++) {
 		for(int j=0; j < 10; j++) {
@@ -37,13 +47,23 @@ void Model::GenerateMap() {
 			trpos.type = Object::Type::tree;
 		}
 	}
+	for(int i = 0; i < 10; i++)
 	{
 		// put enemy
-		auto &enpos = GetObjectAt(playerPos + glm::ivec2(-2, -3));
+		auto pos = playerPos + glm::ivec2(-2 + i*3, -3);
+		auto &enpos = GetObjectAt(pos);
 		enpos.type = Object::Type::enemy;
-		enpos.obj = std::make_shared<Actor>();
-		std::dynamic_pointer_cast<Actor>(enpos.obj)->hp = 50;
-	}
+		auto en = std::make_shared<Actor>();
+		en->position = pos;
+		enemies.insert(en);
+		enpos.obj = en;
+		en->hp = 50;
+		en->damage = 10;
+		en->items = {
+			{'H',1,0,0,30},
+		};
+	}	
+	SetAttackedPos({-1,-1});
 }
 
 void Model::MovePos(glm::ivec2 oldPos, glm::ivec2 newPos) {
@@ -52,6 +72,14 @@ void Model::MovePos(glm::ivec2 oldPos, glm::ivec2 newPos) {
 	place.obj.swap(placeToGo.obj);
 	place.obj.reset();
 	static_cast<Actor*>(placeToGo.obj.get())->position = newPos;
+}
+
+glm::ivec2 Model::GetAttackedPos() {
+	return m_attacked_pos;
+}
+
+void Model::SetAttackedPos(glm::ivec2 pos) {
+	m_attacked_pos = pos;
 }
 
 std::shared_ptr<Actor> Model::GetPlayer() {
@@ -80,7 +108,7 @@ static nlohmann::json ActorToJson(Actor* actor) {
 	
 	for(auto& itm : actor->items) {
 		json jitem;
-		jitem["charRepr"] = itm->charRepr;
+		jitem["charRepr"] = itm.charRepr;
 		// jitem["
 		jactor["items"].push_back(jitem);
 	}
@@ -144,12 +172,18 @@ const std::array<char, Object::Type::num_types>& Model::GetCharPalette() {
 }
 
 
+std::set<std::shared_ptr<Actor>>& Model::GetEnemies() {
+	return enemies;
+}
+
 // Menu
 
-void Model::SetMenu(Menu* menu) {
+void Model::SetMenu(Menu* menu, bool clear) {
 	current_menu = menu;
 	menu_stack = std::stack<Menu*>();
-	current_menu->Clear();
+	if(clear) {
+		current_menu->Clear();
+	}
 }
 
 Menu* Model::GetMenu() {

@@ -1,6 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
-
+// #include <algorithm>
 // map vector compare operator
 template<typename T = glm::ivec2>
 struct vec2_cmp {
@@ -16,22 +16,20 @@ static std::ostream& operator<< (std::ostream& out, const glm::ivec2& v) {
 }
 
 // matlab style comparison operators
-#define VEC_OPERATOR(op) \
-template<typename T> \
-static T operator op (const T& v1, const T& v2) { \
-	return T(v1.x op v2.x, v1.y op v2.y); \
+#define VEC_CMP_OPERATOR(op) \
+static glm::ivec2 operator op (const glm::ivec2& v1, const glm::ivec2& v2) { \
+	return glm::ivec2(v1.x op v2.x, v1.y op v2.y); \
 } \
-template<typename T, typename S> \
-static T operator op (const T& v1, const S& s) { \
-	return T(v1.x op s, v1.y op s); \
+static glm::ivec2 operator op (const glm::ivec2& v1, const int& s) { \
+	return glm::ivec2(v1.x op s, v1.y op s); \
 }
 
-VEC_OPERATOR(<)
-VEC_OPERATOR(<=)
-VEC_OPERATOR(>)
-VEC_OPERATOR(>=)
-VEC_OPERATOR(==)
-VEC_OPERATOR(!=)
+VEC_CMP_OPERATOR(<)
+VEC_CMP_OPERATOR(<=)
+VEC_CMP_OPERATOR(>)
+VEC_CMP_OPERATOR(>=)
+VEC_CMP_OPERATOR(==)
+VEC_CMP_OPERATOR(!=)
 
 template<typename It, typename Cmp>
 auto max_val(It begin, It end, Cmp cmp) {
@@ -41,4 +39,14 @@ auto max_val(It begin, It end, Cmp cmp) {
 		vmax = std::max(cmp(*it), vmax);
 	}
 	return vmax;
+}
+
+template<typename T>
+constexpr bool in(T val, const std::initializer_list<T>& list) {
+	auto begin = list.begin(), end = list.end();
+    while (begin != end) {
+        if (*begin == val) return true;
+        ++begin;
+    }
+    return false;
 }

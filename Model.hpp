@@ -5,9 +5,11 @@
 #include <array>
 #include <memory>
 #include <stack>
+#include <set>
 
 #include "Utils.hpp"
 #include <glm/glm.hpp>
+#include <glm/vector_relational.hpp>
 
 #include <functional>
 
@@ -20,14 +22,19 @@ struct Object {
 		obstacle,
 		tree,
 		mountain,
+		item,
 		num_types
 	};
-	Type type;
-	int elevation;
+	
 };
 
 struct Item {
 	int charRepr;
+	bool consumable;
+	int damage;
+	int armor;
+	int hp;
+	bool equipped;
 };
 
 struct Actor : Object {
@@ -35,38 +42,32 @@ struct Actor : Object {
 	int hp;
 	int armor;
 	int damage;
-	std::vector<std::unique_ptr<Item>> items;
+	std::vector<Item> items;
 };
 
 struct ItemObject : Object {
-	std::unique_ptr<Item> item;
+	ItemObject(Item i) : item(i) {}
+	Item item;
 };
 
-struct Weapon : Item {
-	int damage;
-};
-struct Armor : Item {
-	int armor;
-};
-struct Consumable : Item {
-	int hp;
-};
 
 struct Tile {
 	Object::Type type;
+	int elevation;
 	std::shared_ptr<Object> obj;
 };
 
 enum class ViewType {
 	menu,
 	game,
-	items
+	gamemenu,
 };
 
 struct MenuItem {
 	enum Type {
 		button,
-		inputfield
+		inputfield,
+		toggle
 	};
 	Type type;
 	std::string name;
@@ -104,7 +105,7 @@ public:
 	std::shared_ptr<Actor> 	GetPlayer();
 	glm::ivec2 				GetPlayerPosition();
 	
-	void GenerateMap();
+	void 		GenerateMap();
 	
 	void 		MovePos(glm::ivec2 oldPos, glm::ivec2 newPos);
 	
@@ -115,21 +116,28 @@ public:
 	void 		SetView(ViewType view);
 	ViewType  	GetView();
 	
-	void		SetMenu(Menu* menu);
+	void		SetMenu(Menu* menu, bool clear=true);
 	void		PushMenu(Menu* menu);
 	void		PopMenu();
 	Menu*		GetMenu();
 	int 		GetSelection();
 	void		IncrementSelection(int dir);
-	const std::array<char, Object::Type::num_types>& GetCharPalette();
+	void		SetAttackedPos(glm::ivec2 pos);
+	glm::ivec2  GetAttackedPos();
+	
+	std::set<std::shared_ptr<Actor>>& 					GetEnemies();
+	const std::array<char, Object::Type::num_types>& 	GetCharPalette();
 
 private:
 	std::shared_ptr<Actor> player;
+	std::set<std::shared_ptr<Actor>> enemies;
 	std::map<glm::ivec2, Chunk, vec2_cmp<glm::ivec2>> chunks;
 	std::array<char, Object::Type::num_types> charPalette;
+	
 	// non saveable state
 	Menu* 				current_menu;
 	std::stack<Menu*> 	menu_stack;
 	ViewType 			m_view;
 	int 				m_selection;
+	glm::ivec2			m_attacked_pos;
 };

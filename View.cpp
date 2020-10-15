@@ -9,6 +9,7 @@ View::View(Model* _model, Signals* _signals) : model(_model), signals(_signals) 
 	signals->sig_quit.connect(std::bind(&View::Quit, this));
 }
 
+#define REDCOLOR 1
 void View::Init() {
 	// init curses
 	initscr();
@@ -22,6 +23,9 @@ void View::Init() {
 	glm::ivec2 player_pos = model->GetPlayerPosition();
 	m_camera_position = player_pos;
 	m_game_window = m_window;
+	
+	start_color();
+	init_pair(REDCOLOR, COLOR_RED, COLOR_BLACK);
 }
 
 View::~View() {
@@ -56,6 +60,21 @@ void View::drawRect(glm::ivec2 center, glm::ivec2 size) {
 	mvwaddch(m_window, y2, x2, ACS_LRCORNER);
 }
 
+static glm::ivec2 num_chunks(glm::ivec2 n, glm::ivec2 block) {
+	return ((n % block) > 0) + n/block;
+}
+
+void View::fillRect(glm::ivec2 center, glm::ivec2 size, char ch) {
+	glm::ivec2 c = size/2;
+	// std::ofstream f("out.log");
+	// f << size << "\n";
+	glm::ivec2 pos = center - c;
+	std::string fill_with(size.x-2, ch);
+	for(int y=1; y < c.y*2; ++y) {
+		mvwprintw(m_window, pos.y+y, pos.x+1, fill_with.c_str());
+	}
+}
+
 // puts centered string with optional cursor
 void View::putString(glm::ivec2 center, std::string str, int cursor) {
 	mvwprintw(m_window, center.y, center.x - str.size()/2, str.c_str());
@@ -67,7 +86,6 @@ void View::putString(glm::ivec2 center, std::string str, int cursor) {
 }
 
 void View::renderMenu() {
-	wclear(m_window);
 	
 	const Menu* menu = model->GetMenu();
 	if(!menu) return;
@@ -76,15 +94,15 @@ void View::renderMenu() {
 	glm::ivec2 menu_size;
 	menu_size.x = max_val(menu->items.begin(), menu->items.end(), [](const MenuItem &a) { return (int)a.name.size() + a.max_input; } );
 	menu_size.y = menu->items.size() + 2;
-	
+	menu_size += glm::ivec2(10, 5);
 	glm::ivec2 center = m_window_size / 2;
+	
+	drawRect(center, menu_size);
+	fillRect(center, menu_size, ' ');
+	putString({center.x, center.y-menu_size.y/2}, "[ " + menu->title + " ]");
 	
 	int selected = model->GetSelection();
 	int i = 0;
-	
-	drawRect(center, menu_size + glm::ivec2(10, 5));
-	putString({center.x, 2}, menu->title);
-	
 	for(auto& m : menu->items) {
 		int elem_size = m.name.size();
 		glm::ivec2 pos( center.x, center.y - menu->items.size() + i );
@@ -94,7 +112,13 @@ void View::renderMenu() {
 			elem_size += m.max_input;
 			putString(pos, m.name + input, i == selected ? m.name.size() + m.input_cursor : -1);
 		} else {
+			if(m.input_cursor) {
+				wattron(m_window, A_STANDOUT);
+			}
 			putString(pos, m.name);
+			if(m.input_cursor) {
+				wattroff(m_window, A_STANDOUT);
+			}
 		}
 		if(i == selected) {
 			mvwaddch(m_window, pos.y, pos.x-2 - elem_size/2, '*');
@@ -105,10 +129,12 @@ void View::renderMenu() {
 }
 
 
-static glm::ivec2 num_chunks(glm::ivec2 n, glm::ivec2 block) {
-	return ((n % block) > 0) + n/block;
-}
 
+
+static bool isInRect(glm::ivec2 pt, glm::ivec2 topleft, glm::ivec2 size) {
+	auto test = (pt > topleft) * (pt < topleft + size);
+	return test.x && test.y;
+}
 
 void View::renderGame() {
 	auto player = model->GetPlayer();
@@ -147,7 +173,7 @@ void View::renderGame() {
 	// number of chunks that can fit on window
 	glm::ivec2 chunks_max = num_chunks(draw_size + chunk_local, chunk_size);
 	
-	// std::ofstream f("out.log");
+	std::ofstream f("out.log");
 	// f << "size: " << draw_size << " max: " << chunks_max << " loc: " << chunk_local << "\n";
 	
 	// render visible chunks
@@ -194,12 +220,17 @@ void View::renderGame() {
 			}
 		}
 	}
-}
-
-void View::renderItemsMenu() {
-	glm::ivec2 pos = m_window_size/2;
-	glm::ivec2 size(10,5);
-	// drawRect(
+	auto atk_pos = model->GetAttackedPos();
+	if( isInRect(atk_pos, pos_offset, draw_size) ) {
+		auto &obj 	= model->GetObjectAt(atk_pos);
+		wattron( m_window, COLOR_PAIR(REDCOLOR) );
+		// place = model->GetCharPalette()[(int)obj.type];
+		auto p = atk_pos - pos_offset + draw_offset;
+		// f << "pos: " << p << "\n";
+		// mvwprintw(m_window, p.y, p.x, "%c", model->GetCharPalette()[(int)obj.type]);
+		mvwprintw(m_window, p.y, p.x, "%c", model->GetCharPalette()[(int)obj.type]);
+		wattroff( m_window, COLOR_PAIR(REDCOLOR) );
+	}
 }
 
 void View::Render() {
@@ -211,6 +242,7 @@ void View::Render() {
 	switch(model->GetView()) {
 		
 		case ViewType::menu:
+			wclear(m_window);
 			renderMenu();
 			break;
 			
@@ -218,11 +250,10 @@ void View::Render() {
 			renderGame();
 			break;
 			
-		case ViewType::items:
+		case ViewType::gamemenu:
 			renderGame();
-			renderItemsMenu();
+			renderMenu();
 			break;
-			
 	}
 	wrefresh(m_window);
 }

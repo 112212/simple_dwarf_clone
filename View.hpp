@@ -20,6 +20,7 @@ public:
 private:
 
 	void drawRect(glm::ivec2 center, glm::ivec2 size);
+	void fillRect(glm::ivec2 center, glm::ivec2 size, char ch);
 	void putString(glm::ivec2 center, std::string str, int cursor=-1);
 	void renderMenu();
 	void renderGame();
