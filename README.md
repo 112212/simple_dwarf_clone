@@ -4,4 +4,4 @@
 
 - press i to open inventory
 - press esc twice to open main menu
-
+- uses ncurses library for console
