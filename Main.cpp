@@ -9,6 +9,11 @@ int main() {
 	
 	model.LoadConfig("config/config.json");
 	Controller controller(&model, &signals);
+	view.Init();
+	
+	// render initial frame
+	signals.sig_new_frame();
+	
 	while(1) {
 		view.GetInput();
 	}

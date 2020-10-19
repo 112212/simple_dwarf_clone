@@ -1,0 +1,43 @@
+{
+	"charmap": " OEXT^I~",
+	"elevationmap": "~.--^",
+	"items": [
+
+		{
+			"name": "Armor (+20)",
+			"char": "a",
+			"armor": 20,
+			"consumable": false
+		},
+		{
+			"name": "Big Armor (+100)",
+			"char": "a",
+			"armor": 100,
+			"consumable": false
+		},
+		{
+			"name": "Health Potion (+15)",
+			"char": "H",
+			"hp": 15,
+			"consumable": true
+		},
+		{
+			"name": "Big Health Potion (+50)",
+			"char": "H",
+			"hp": 50,
+			"consumable": true
+		},
+		{
+			"name": "Sword (+20)",
+			"char": "s",
+			"damage": 20,
+			"consumable": false
+		},
+		{
+			"name": "Axe (+30)",
+			"char": "s",
+			"damage": 30,
+			"consumable": false
+		}
+	]
+}

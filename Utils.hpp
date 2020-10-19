@@ -28,17 +28,13 @@ VEC_CMP_OPERATOR(<)
 VEC_CMP_OPERATOR(<=)
 VEC_CMP_OPERATOR(>)
 VEC_CMP_OPERATOR(>=)
-VEC_CMP_OPERATOR(==)
-VEC_CMP_OPERATOR(!=)
+// VEC_CMP_OPERATOR(==)
+// VEC_CMP_OPERATOR(!=)
 
-template<typename It, typename Cmp>
-auto max_val(It begin, It end, Cmp cmp) {
-	if(begin == end) return 0;
-	decltype(cmp(*begin)) vmax = cmp(*begin);
-	for(It it = begin+1; it != end; ++it) {
-		vmax = std::max(cmp(*it), vmax);
-	}
-	return vmax;
+
+static bool isInRect(glm::ivec2 pt, glm::ivec2 topleft, glm::ivec2 size) {
+	auto test = (pt > topleft) * (pt < topleft + size);
+	return test.x && test.y;
 }
 
 template<typename T>
@@ -50,3 +46,43 @@ constexpr bool in(T val, const std::initializer_list<T>& list) {
     }
     return false;
 }
+
+static glm::ivec2 neg_mod(glm::ivec2 val, glm::ivec2 m) {
+	return m*(val < 0) + val;
+}
+
+class VecIterate {
+ public:
+	using value = glm::ivec2;
+	VecIterate(const glm::ivec2 &a, const glm::ivec2 &b) : m_start(a), m_end(b) {}
+
+	const value& operator*() const {
+		return m_start;
+	}
+	
+	VecIterate& operator++() {
+		if(m_start.x == m_end.y) {
+			++m_start.y;
+			m_start.x = m_end.x;
+		} else {
+			++m_start.x;
+		}
+		return *this;
+	}
+  
+	bool operator!=(VecIterate& it) const {
+		return m_start.x != it.m_start.x || m_start.y != it.m_start.y;
+	}
+  
+	VecIterate begin() const {
+		return VecIterate(m_start, {m_start.x, m_end.x-1});
+	}
+
+	VecIterate end() const {
+		return VecIterate({m_start.x, m_end.y}, m_start);
+	}
+
+ private:
+	glm::ivec2 m_start;
+	glm::ivec2 m_end;
+};

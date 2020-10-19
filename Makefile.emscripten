@@ -1,0 +1,38 @@
+cpp := 	\
+		Controller.cpp 	\
+		Model.cpp		\
+		View.cpp		\
+		ViewColors.cpp	\
+		libs/OpenSimplexNoise/OpenSimplexNoise/OpenSimplexNoise.cpp	\
+		Main.cpp		\
+		
+build := build-em
+CXX := em++
+flags := -g -O2 -std=c++17 -Ilibs -s USE_BOOST_HEADERS=1 -s USE_SDL=2
+# link := -lcurses -lboost_filesystem
+link := -L. -lpdcurses-em -s USE_SDL=2 -s USE_BOOST_HEADERS=1 --embed-file config --embed-file savegames
+
+obj := $(addprefix $(build)/, $(patsubst %.cpp,%.o,$(cpp)))
+
+exe := game.html
+
+.PHONY: make_dir
+
+all: make_dir $(exe)
+
+make_dir:
+	@mkdir -p $(build)
+	@mkdir -p $(build)/libs/OpenSimplexNoise/OpenSimplexNoise
+
+DEP = $(obj:%.o=%.d)
+-include $(DEP)
+
+$(build)/%.o: %.cpp
+	$(CXX) -c $< -MMD -o $@ $(flags) $(includes)
+	
+$(exe): $(obj)
+	$(CXX) $^ -o $@ $(link)
+
+clean:
+	rm -r $(build)
+	rm game

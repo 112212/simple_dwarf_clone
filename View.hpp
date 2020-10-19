@@ -2,10 +2,11 @@
 #include "Model.hpp"
 #include "Signals.hpp"
 
-struct _win_st;
-typedef struct _win_st WINDOW;
-
-
+#ifdef NCURSES
+#include <ncurses.h>
+#else
+#include "libs/PDCurses/curses.h"
+#endif
 
 class View {
 public:
@@ -16,8 +17,7 @@ public:
 	void Render();
 	void NewGame();
 	void Quit();
-	boost::signals2::signal<void(int)> sig_input;
-	
+
 private:
 
 	void drawRect(glm::ivec2 center, glm::ivec2 size);
@@ -26,11 +26,14 @@ private:
 	void renderMenu();
 	void renderGame();
 	void renderItemsMenu();
+	void updateWindowSize();
 	
 	Signals* signals;
 	Model* model;
 	WINDOW* m_window;
 	WINDOW* m_game_window;
+	glm::ivec2 m_lt_draw_offset;
+	glm::ivec2 m_rb_draw_offset;
 	glm::ivec2 m_window_size;
-	glm::ivec2 m_camera_position;
+	int m_menu_position;
 };
