@@ -104,9 +104,12 @@ void Model::GenerateChunk(glm::ivec2 tl_chunk) {
 		o.elevation = glm::clamp<int>(4.0 * simplex.eval(v.x, v.y), -2, 2);
 		
 		// trees
-		glm::vec2 v2 = glm::vec2(pos)/4.0f;
+		std::array<float, 5> tree_chance {
+			0.0,0.7,0.8,0.2,0.1
+		};
+		glm::vec2 v2 = glm::vec2(pos)/15.0f;
 		if(o.type == Tile::empty) {
-			o.type = simplex.eval(v2.x, v2.y) > (o.elevation>=1 ? 0.2 : 0.6f) ? Tile::tree : Tile::empty;
+			o.type = simplex.eval(v2.x, v2.y) > (1.0-tree_chance[o.elevation+2]) ? Tile::tree : Tile::empty;
 		}
 		
 		// elevation 2 is mountain

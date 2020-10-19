@@ -225,13 +225,14 @@ void View::renderGame() {
 					glm::ivec2 color = {7,0};
 					
 					static int elevation_color_palette[] = {
-						0b001,0b011,0,0b110,0b111
+						0b001,0b011,0b011,0b110,0b111
 					};
 					
 					color.y = elevation_color_palette[obj.elevation+2];
 					
 					if(obj.type == Tile::tree) {
 						color.x = 0b010;
+						color.y = 0b010;
 					}
 					
 					glm::ivec2 put_pos = relpos - offset_rb + m_lt_draw_offset + glm::ivec2(x,y);
@@ -239,7 +240,7 @@ void View::renderGame() {
 					if(obj.type == Tile::water) {
 						// animated water
 						static int water_anim = 0;
-						water_anim ^= 1;
+						water_anim = (x+y) & 1;
 						mvwprintw(m_window, put_pos.y, put_pos.x, "%c", 
 							(water_anim ^ (abs_player_pos.x^abs_player_pos.y)&1) ? ' ' : model->GetCharMap()[(int)obj.type]);
 					} else {
