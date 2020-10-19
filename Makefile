@@ -9,7 +9,7 @@ cpp := 	\
 build := build
 use_ncurses := true
 
-flags := -g -O2 -std=c++17 -Ilibs -Ilibs/glm
+flags := -g -O2 -std=c++17 -Ilibs
 
 ifeq ($(use_ncurses),true)
 	flags += -D NCURSES
